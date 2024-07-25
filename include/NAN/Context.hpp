@@ -15,6 +15,7 @@ private:
 	sf::RenderWindow* base_window;
 	sf::Shader shader;
 	sf::RectangleShape main_frame;
+	bool is_cursor = true;
 public:
 	Context() { }
 	~Context() { }
@@ -24,10 +25,13 @@ public:
 	}
 
 	void hide_cursor() {
-		base_window->setMouseCursorVisible(false);
+		is_cursor = false;
 	}
 	void show_cursor() {
-		base_window->setMouseCursorVisible(true);
+		is_cursor = true;
+	}
+	void update_cursor() {
+		base_window->setMouseCursorVisible(is_cursor);
 	}
 
 	void resize(sf::Vector2u size) {
@@ -70,6 +74,7 @@ public:
 	}
 
 	void draw() {
+		update_cursor();
 		// set("texture", sf::Shader::CurrentTexture);
 		// base_window->draw(main_frame, &shader);
 		// base_window->draw(main_frame);
@@ -101,14 +106,23 @@ public:
 		rt.draw(crc);
 	}
 
-	static void draw_circle_empty(sf::RenderTexture& rt, uint32_t x, uint32_t y, float weight, float border_weight, sf::Color color = sf::Color::Black) {
+	static void draw_circle_empty(sf::RenderTexture& rt, uint32_t x, uint32_t y, float radius, float border_weight=1.0f, sf::Color color = sf::Color::Black) {
 		sf::CircleShape crc;
 		crc.setFillColor(sf::Color::Transparent);
 		crc.setOutlineColor(color);
 		crc.setOutlineThickness(border_weight);
-		crc.setRadius(weight);
-		crc.setPosition(x-weight, y-weight);
+		crc.setRadius(radius);
+		crc.setPosition(x-radius, y-radius);
 		rt.draw(crc);
+	}
+
+	static void draw_line(sf::RenderTexture& rt, float x1, float y1, float x2, float y2, sf::Color color = sf::Color::Black) {
+		sf::Vertex line[] =
+		{
+			sf::Vertex(sf::Vector2f(x1, y1), color),
+			sf::Vertex(sf::Vector2f(x2, y2), color)
+		};
+		rt.draw(line, 2, sf::Lines);
 	}
 
 	void draw(sf::RenderTexture& rt, uint32_t x, uint32_t y) {

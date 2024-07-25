@@ -8,13 +8,19 @@
 #include <NAN/utils.hpp>
 #include <NAN/tools/Bounds.hpp>
 #include <NAN/tools/Mouse.hpp>
+#include <NAN/basic_widgets/HSLColorPicker.hpp>
 #include <NAN/tools/Keyboard.hpp>
-#include <glm/glm.hpp>
 #include <iostream>
+#include <glm/glm.hpp>
+
+#include <Windows.h>
 
 namespace Nan {
 
-class Canvas: public Widget, public Tools::Mouse, public Tools::Keyboard {
+class Canvas:
+	public Widget,
+	public Tools::Mouse,
+	public Tools::Keyboard {
 private:
 	Tools::Boundu bounds;
 	sf::RenderTexture rt;
@@ -24,6 +30,7 @@ private:
 	sf::Color alt_color = sf::Color::White;
 	sf::Vector2f circle;
 	glm::vec2 last;
+	Nan::HSLColorPicker* picker;
 public:
 	Canvas() {
 		config();
@@ -50,27 +57,45 @@ public:
 		last.x = 0;
 		last.y = 0;
 		rt.create(bounds.w, bounds.h);
+		rt.clear(alt_color);
 		rt.setSmooth(true);
+		picker = nullptr;
+	}
+
+	void add_picker(Nan::HSLColorPicker* picker) {
+		this->picker = picker;
+	}
+
+	void clear() {
+		rt.clear(alt_color);
 	}
 
 	void start() { }
 	
-	void update() { }
+	void update() {
+		if (picker != nullptr) {
+			color = picker->getCurrentColor();
+		}
+	}
 
 	void draw(Nan::Context& ctx) {
 		ctx.draw(rt, bounds.x, bounds.y);
-		ctx.draw_circle_empty(circle.x, circle.y, radius, 2);
-		ctx.hide_cursor();
+		if (is_inside(bounds)) {
+			ctx.draw_circle_empty(circle.x, circle.y, radius, 2);
+			ctx.hide_cursor();
+		} else {
+			ctx.show_cursor();
+		}
 	}
 
-  void on_key_down(Tools::KeyboardEvent& ev) {
-		
-	}
+  void on_key_down(Tools::KeyboardEvent& ev) { }
 
   void on_key_up(Tools::KeyboardEvent& ev) {
-
+		if (is_inside(bounds) && ev.kw.control && ev.kw.code == sf::Keyboard::Key::S) {
+			save();
+		}
 	}
-
+	
 	void on_mouse_down(Tools::MouseEvent& ev) { }
 
 	void on_mouse_up(Tools::MouseEvent& ev) {
@@ -81,6 +106,34 @@ public:
 	void on_mouse_move(Tools::MouseEvent& ev) {
 		circle.x = ev.x;
 		circle.y = ev.y;
+	}
+
+	void save() {
+		sf::Image img = rt.getTexture().copyToImage();
+		OPENFILENAMEW ofn;
+		WCHAR szFile[260] = { 0 };
+		ZeroMemory(&ofn, sizeof(ofn));
+		ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = szFile;
+    ofn.lpstrFile[0] = '\0';
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = L"PNG Files\0*.png\0All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+		if (GetSaveFileNameW(&ofn) == TRUE) {
+			sf::String filePath(ofn.lpstrFile);
+			if (filePath.find(".png") == std::string::npos) {
+				filePath += ".png";
+			}
+			if (!img.saveToFile(filePath)) {
+				std::cout << "Failed to save drawing as PNG." << std::endl;
+			}
+		}
 	}
 
 	void drawing(glm::vec2 current) {
@@ -146,6 +199,7 @@ public:
 	}
 
 	void on_mouse_hold(Tools::MouseEvent& ev) {
+		if (!is_inside(bounds)) return;
 		glm::vec2 current(ev.x, ev.y);
 		current -= radius;
 

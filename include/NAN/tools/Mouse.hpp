@@ -2,6 +2,7 @@
 #define NAN_TOOLS_MOUSE_HPP 
 
 #include <SFML/Graphics.hpp>
+#include <NAN/tools/Bounds.hpp>
 #include <functional>
 #include <type_traits>
 
@@ -41,6 +42,19 @@ namespace Tools {
 		virtual void on_mouse_hold(Tools::MouseEvent& ev) = 0;
 		virtual void on_wheel_scroll(Tools::MouseEvent& ev) = 0;
 
+		bool is_inside(Tools::Boundu& bounds) {
+			return ( bounds.x < x && bounds.w+bounds.x > x &&
+							 bounds.y < y && bounds.h+bounds.y > y );
+		}
+		bool is_inside(float _x, float _y, float _w, float _h) {
+			return ( _x < x && _w+_x > x &&
+							 _y < y && _h+_y > y );
+		}
+		bool is_inside_mm(float min_x, float min_y, float max_x, float max_y) {
+			return ( min_x < x && max_x > x &&
+							 min_y < y && max_y > y );
+		}
+
 
 		void provide_mouse(sf::Event& ev, sf::RenderWindow& ptw) {			
 			switch (ev.type) {
@@ -66,7 +80,7 @@ namespace Tools {
 					y = v.y;
 					event_instances.x = x;
 					event_instances.y = y;
-					if (is_pressed) { on_mouse_hold(event_instances); }
+					if (is_pressed ) on_mouse_hold(event_instances);
 					on_mouse_move(event_instances);
 				} break;
 
