@@ -1,7 +1,11 @@
 #ifndef NAN_WINDOW_HPP
 #define NAN_WINDOW_HPP
 
+#include <thread>
 #include <SFML/Graphics.hpp>
+#ifdef __linux__
+#include <X11/Xlib.h>
+#endif
 #include <NAN/Widget.hpp>
 #include <NAN/Widgets.hpp>
 #include <NAN/Context.hpp>

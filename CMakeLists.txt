@@ -28,10 +28,12 @@ endfunction()
 add_compile_options(-fconcepts)
 add_compile_options(-fpermissive)
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+add_executable(${PROJECT_NAME} WIN32 src/main.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC sfml-graphics)
 # target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_c++20)
 target_include_directories(${PROJECT_NAME} PUBLIC "./include" PUBLIC "./glm")
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+include(CPack)
 
 if(WIN32)
     add_custom_command(
