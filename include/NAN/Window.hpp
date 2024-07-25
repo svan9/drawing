@@ -24,7 +24,6 @@ private:
 	sf::Vector2f mouse_pos;
 	sf::Clock clock;
 	bool has_antialiasing = true;
-	sf::Color bgc = sf::Color::White;
 public:
 	Window() {
 		window.create(sf::VideoMode(200, 200), "...", sf::Style::Default, config());
@@ -82,7 +81,7 @@ public:
 
 	template<typename... Types>
 	void draw(Types&... widgets) {
-		window.clear(bgc);
+		window.clear(ctx.config().background().color);
 		(widgets.draw(ctx), ...);
 		ctx.set("u_resolution", sf::Glsl::Vec2{ window.getSize() });
 		ctx.set("u_mouse", sf::Glsl::Vec2{ mouse_pos });

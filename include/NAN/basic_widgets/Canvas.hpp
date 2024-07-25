@@ -200,7 +200,7 @@ public:
 
 	void on_mouse_hold(Tools::MouseEvent& ev) {
 		if (!is_inside(bounds)) return;
-		glm::vec2 current(ev.x, ev.y);
+		glm::vec2 current(ev.x-bounds.x, ev.y-bounds.y);
 		current -= radius;
 
 		if (ev.button == sf::Mouse::Button::Left) {

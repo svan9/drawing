@@ -24,12 +24,7 @@ class HSLColorPicker:
 private:
 	Tools::Boundu bounds;
 	sf::RenderTexture rt;
-	// sf::Clock clock;
-	// float radius = 5.0f;
-	// sf::Color color = sf::Color::Black;
-	// sf::Color alt_color = sf::Color::White;
-	// sf::Vector2f circle;
-	// glm::vec2 last;
+
 	float width;
 	float height;
 	float circle_radius;
@@ -54,12 +49,15 @@ public:
 	sf::Color getCurrentColor() {
 		return calcColor(x, y, angle, height-cube_margin-cube_margin, height-cube_margin-cube_margin);
 	}
+	sf::Color getColor(float __x, float __y) {
+		return calcColor(__x, __y, angle, height-cube_margin-cube_margin, height-cube_margin-cube_margin);
+	}
 
 	sf::Color calcColor(float x, float y, float angle, float width, float height) {
 		float hue = angle/360;
 		if (x == 0 && y == 0) { return sf::Color::White; }
 		if (x == width && y == height) { return sf::Color::Black; }
-		if (y == height) { return calcColor(angle); }
+		if (y >= height) { return sf::Color::Black; }
 		float hsv_value = 1 - (y / height);
 		float hsv_saturation = x / width;
 		float lightness = (hsv_value / 2) * (2 - hsv_saturation);
@@ -72,7 +70,7 @@ public:
 		float hue = angle/360;
 		float hsv_value = 1 - (y / bounds.h);
 		float hsv_saturation = x / bounds.w;
-		float lightness = (hsv_value / 2) * (2 - hsv_saturation);
+		float lightness = (hsv_value / 1.8f) * (2 - hsv_saturation);
 		float saturation = (hsv_value * hsv_saturation) / (1 - glm::abs(2 * lightness - 1));
 		Nan::ColorRGB color = Nan::hsl_to_rgb(hue, saturation, lightness);
 		return sf::Color(color.r, color.g, color.b);
@@ -82,6 +80,7 @@ public:
 		Nan::ColorRGB color = Nan::hsl_to_rgb(angle, 1.0f, 0.5f);
 		return sf::Color(color.r, color.g, color.b);
 	}
+
 
 	void config() {
 		sf::ContextSettings settings;
@@ -93,6 +92,8 @@ public:
 		circle_radius = 0.09*height;
 		pass = 5;
 		cube_margin = 0.20*height+(circle_radius/3)+pass;
+		x = static_cast<float>(bounds.w);
+		x = static_cast<float>(bounds.y);
 	}
 
 	void start() { }
@@ -116,15 +117,16 @@ public:
 	void on_mouse_move(Tools::MouseEvent& ev) {	}
 
 	void drawing() {
+		float kh2 = height-cube_margin-cube_margin;
 		sf::Texture texture;
 		texture.create(width, height);
 		sf::Image img;
 		img.create(width, height, sf::Color::Transparent);
 		int margin;
-		for (int x = cube_margin; x < height-cube_margin; x++) {
-			for (int y = cube_margin; y < height-cube_margin; y++) {
-				sf::Color color = calcColor(x, y, this->angle, height-cube_margin, height-cube_margin); 
-				img.setPixel(x, y, color);
+		for (int xx = 0; xx < kh2; xx++) {
+			for (int yy = 0; yy < kh2; yy++) {
+				sf::Color color = getColor(xx, yy);
+				img.setPixel(xx+cube_margin, yy+cube_margin, color);
 			}
 		}
 
@@ -152,12 +154,12 @@ public:
 
 	void on_mouse_down(Tools::MouseEvent& ev) {
 		if (!is_inside(bounds)) return;
-		if (!updateXY(ev) || !in_cube) updateAngle(ev);
+		if (updateXY(ev) && !in_cube) updateAngle(ev);
 	}
 
 	void on_mouse_hold(Tools::MouseEvent& ev) {
 		if (!is_inside(bounds)) return;
-		if (!updateXY(ev) || !in_cube) updateAngle(ev);
+		if (updateXY(ev) && !in_cube) updateAngle(ev);
 	}
 
 	bool updateXY(Tools::MouseEvent& ev) {
@@ -165,7 +167,7 @@ public:
 		float yy = bounds.y;
 		float margin = cube_margin;
 		
-		if (!is_inside_mm(
+		if (!in_cube && !is_inside_mm(
 			xx+margin-pass,
 			yy+margin-pass,
 			height+xx-margin+pass,

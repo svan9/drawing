@@ -6,23 +6,20 @@
 #include <NAN/tools/Bounds.hpp>
 #include <windows.h>
 
-
-
-
 int main() {
-  Nan::HideConsole();
   Nan::Window main_window(1000, 800);
   main_window.updateFrameRate(144);
   
   Nan::Context* ctx = main_window.get_context();
-  // ctx->load_shader("E:/so2u/GITHUB/cuba/drawing/shaders/main.frag");
-  Nan::Canvas canvas(Nan::Tools::Boundu{0U, 0U, 600U, 400U});
-  Nan::HSLColorPicker picker(Nan::Tools::Boundu{650U, 0U, 300U, 300U});
+  ctx->config().background(sf::Color(0x22223bff));
+
+  Nan::Canvas canvas(Nan::Tools::Boundu{40U, 40U, 600U, 600U});
+  Nan::HSLColorPicker picker(Nan::Tools::Boundu{680U, 40U, 280U, 280U});
 
   canvas.add_picker(&picker);
   main_window.loop(canvas, picker);
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-  main();
-}
+// int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+//   return main();
+// }

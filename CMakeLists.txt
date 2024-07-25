@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(NANPA LANGUAGES CXX)
 
 set(PROJECT_NAME nanpa)
+set(PROJECT_VERSION 1.0.0)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
@@ -27,12 +28,37 @@ function(add_module name)
 endfunction()
 add_compile_options(-fconcepts)
 add_compile_options(-fpermissive)
-
 add_executable(${PROJECT_NAME} WIN32 src/main.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC sfml-graphics)
 # target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_c++20)
 target_include_directories(${PROJECT_NAME} PUBLIC "./include" PUBLIC "./glm")
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+
+
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION)
+set(CPACK_PACKAGE_VENDOR "ft_so2u")
+set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
+
+if(INSTALL_RUNTIME_PREFIX STREQUAL ".")
+  set(install_prefix_for_set_property)
+else()
+  set(install_prefix_for_set_property ${INSTALL_RUNTIME_PREFIX}/)
+endif()
+
+
+set_property(
+  INSTALL 
+    "${install_prefix_for_set_property}$<TARGET_FILE_NAME:${PROJECT_NAME}>"
+  PROPERTY
+    CPACK_START_MENU_SHORTCUTS ${PROJECT_NAME}
+)
+
+set_property(
+  INSTALL 
+    "${install_prefix_for_set_property}$<TARGET_FILE_NAME:${PROJECT_NAME}>"
+  PROPERTY
+    CPACK_DESKTOP_SHORTCUTS ${PROJECT_NAME}
+)
+
 include(CPack)
 
 if(WIN32)

@@ -3,6 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <NAN/Window.hpp>
+#include <NAN/ContextConfig.hpp>
 
 namespace Nan {
 
@@ -15,6 +16,7 @@ private:
 	sf::RenderWindow* base_window;
 	sf::Shader shader;
 	sf::RectangleShape main_frame;
+	ContextConfig style_config;
 	bool is_cursor = true;
 public:
 	Context() { }
@@ -43,6 +45,10 @@ public:
 
 	void create(sf::RenderWindow* base_window) {
 		this->base_window = base_window; 
+	}
+
+	ContextConfig& config() {
+		return style_config;
 	}
 
 	void load_shader(const char* path_to_vertex, const char* path_to_fragment) {
