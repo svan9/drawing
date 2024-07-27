@@ -4,6 +4,8 @@
 #include <SFML/Graphics.hpp>
 #include <NAN/Window.hpp>
 #include <NAN/ContextConfig.hpp>
+#include <glm/glm.hpp>
+#include <functional>
 
 namespace Nan {
 
@@ -154,16 +156,165 @@ public:
 
 	static void draw_rect_line(sf::RenderTexture& rt,
 		size_t x, size_t y, 
-		size_t dx, size_t dy, size_t w,
+		size_t dx, size_t dy,
+		float ot = 2,
 		sf::Color color = sf::Color::Black
 	) {
-		sf::ConvexShape cnv;
-		cnv.setPoint(0, sf::Vector2f(x-w, y-w));
-		cnv.setPoint(1, sf::Vector2f(dx-w, dy-w));
-		cnv.setPoint(2, sf::Vector2f(dx+w, dy+w));
-		cnv.setPoint(3, sf::Vector2f(x+w, y+w));
-		cnv.setFillColor(color);
-		rt.draw(cnv);
+		for (int f = 0; f < ot; f++) {
+			x+=f; y+=f; dx-=f; dy-=f;
+			sf::Vertex line[] =
+			{
+				sf::Vertex(sf::Vector2f(x, y), color),
+				sf::Vertex(sf::Vector2f(dx, y), color),
+
+				sf::Vertex(sf::Vector2f(dx, y), color),
+				sf::Vertex(sf::Vector2f(dx, dy), color),
+
+				sf::Vertex(sf::Vector2f(dx, dy), color),
+				sf::Vertex(sf::Vector2f(x, dy), color),
+				
+				sf::Vertex(sf::Vector2f(x, dy), color),
+				sf::Vertex(sf::Vector2f(x, y), color)
+			};
+			rt.draw(line, 8, sf::Lines);
+		}
+	}
+
+	static void rotate_r4(
+		size_t& x, size_t& y, 
+		size_t& dx, size_t& dy,
+		size_t& x_2, size_t& y_2, 
+		size_t& dx_2, size_t& dy_2
+	) {
+		size_t _x = x;
+		x = dx;
+		dx = dx_2;
+		dx_2 = x_2;
+		x_2 = _x;
+
+		size_t _y = y;
+		y = dy;
+		dy = dy_2;
+		dy_2 = y_2;
+		y_2 = _y;
+	}
+
+	static bool is_normal_r4(
+		size_t& x, size_t& y, 
+		size_t& dx, size_t& dy,
+		size_t& x_2, size_t& y_2, 
+		size_t& dx_2, size_t& dy_2
+	) {
+		if (
+			std::min({x, dx, x_2, dx_2}) == x &&
+			std::max({x, dx, x_2, dx_2}) == dx_2 &&
+			std::min({y, dy, y_2, dy_2}) == y &&
+			std::min({x, dx, x_2, dx_2}) == x
+		) {
+			return true;
+		}
+
+		return false;
+	}
+
+	template<typename T>
+	static T find_more(T value, std::initializer_list<sf::Uint32> il) {
+		for (T& val_: il) { if (val_ > value) { return val_; } }
+		return 0;
+	}
+
+	template<typename T>
+	static T find_less(T value, std::initializer_list<sf::Uint32> il) {
+		for (T& val_: il) { if (val_ < value) { return val_; } }
+		return 0;
+	}
+	
+	template<typename T>
+	static T find_if(bool(*func)(T&), std::initializer_list<sf::Uint32> il) {
+		for (T& val_: il) { if (func(val_)) { return val_; } }
+		return 0;
+	}
+	
+	template<typename T>
+	static T find_if(const std::function<bool(T&)>& func, std::initializer_list<sf::Uint32> il) {
+		for (T& val_: il) { if (func(val_)) { return val_; } }
+		return 0;
+	}
+
+	template<typename T>
+	static size_t find_if_index(std::function<bool(T&)>& func, std::vector<T> il) {
+		int i = 0;
+		for (T& val_: il) { 
+			if (func(val_)) { 
+				return i;
+			} 
+			i++;
+		}
+		return 0;
+	}
+
+	static void normal_r4(
+		size_t& x, size_t& y, 
+		size_t& dx, size_t& dy,
+		size_t& x_2, size_t& y_2, 
+		size_t& dx_2, size_t& dy_2
+	) {
+		auto ffx = {x, dx, x_2, dx_2};
+		auto ffy = {y, dy, y_2, dy_2};
+		std::vector<sf::Vector2u> ff = {{x, y}, {dx, dy}, {x_2, y_2}, {dx_2, dy_2}};
+
+		x = std::min(ffx);
+		y = std::min(ffy);
+		dx_2 = std::max(ffx);
+		dy_2 = std::max(ffy);
+
+		std::function<bool(sf::Vector2u&)> fndx;
+		fndx = [x, dy_2](sf::Vector2u& d) -> bool {
+			return d.x > x && d.y < dy_2;
+		};
+
+		size_t _di = find_if_index(fndx, ff);
+		dx = *(ffx.begin()+_di);
+		dy = *(ffy.begin()+_di);
+
+		std::function<bool(sf::Vector2u&)> fnx_2;
+		fnx_2 = [y, dx_2](sf::Vector2u& d) -> bool {
+			return d.x > dx_2 && d.y < y;
+		};
+
+		_di = find_if_index(fnx_2, ff);
+		
+		x_2 = *(ffx.begin()+_di);
+		y_2 = *(ffy.begin()+_di);
+
+	}
+	
+	static void draw_rect_line(sf::RenderTexture& rt,
+		size_t x, size_t y, 
+		size_t dx, size_t dy,
+		size_t x_2, size_t y_2, 
+		size_t dx_2, size_t dy_2,
+		float ot = 2,
+		sf::Color color = sf::Color::Black
+	) {
+		for (int f = 0; f < ot; f++) {
+			x-=f; y-=f; dx+=f; dy-=f;
+			x_2-=f; y_2+=f; dx_2+=f; dy_2+=f;
+			sf::Vertex line[] = {
+				sf::Vertex(sf::Vector2f(x, y), color),
+				sf::Vertex(sf::Vector2f(dx, dy), color),
+
+				sf::Vertex(sf::Vector2f(dx, dy), color),
+				sf::Vertex(sf::Vector2f(dx_2, dy_2), color),
+
+				sf::Vertex(sf::Vector2f(dx_2, dy_2), color),
+				sf::Vertex(sf::Vector2f(x_2, y_2), color),
+
+				sf::Vertex(sf::Vector2f(x_2, y_2), color),
+				sf::Vertex(sf::Vector2f(x, y), color),
+			};
+			rt.draw(line, 8, sf::Lines);
+		}
 	}
 
 	void draw_point(size_t x, size_t y) {

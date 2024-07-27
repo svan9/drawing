@@ -30,11 +30,13 @@ private:
 	float circle_radius;
 	float pass;
 	float cube_margin;
-	const int N = 360*4;
+	const int N = 360*8;
 	const float max_a = (N) * (2.0 * M_PI / N);
 	float angle = 0;
 	float x, y;
-
+	float rad = 0.0F;
+	float x0 = 0;
+	float y0 = 0;
 	bool in_cube = false;
 public:
 	HSLColorPicker() {
@@ -48,6 +50,9 @@ public:
 	
 	sf::Color getCurrentColor() {
 		return calcColor(x, y, angle, height-cube_margin-cube_margin, height-cube_margin-cube_margin);
+	}
+	sf::Color getCurrentHue() {
+		return calcColor(angle, height-cube_margin-cube_margin, height-cube_margin-cube_margin);
 	}
 	sf::Color getColor(float __x, float __y) {
 		return calcColor(__x, __y, angle, height-cube_margin-cube_margin, height-cube_margin-cube_margin);
@@ -63,7 +68,7 @@ public:
 		float lightness = (hsv_value / 2) * (2 - hsv_saturation);
 		float saturation = (hsv_value * hsv_saturation) / (1 - glm::abs(2 * lightness - 1));
 		Nan::ColorRGB color = Nan::hsl_to_rgb(hue, saturation, lightness);
-		return sf::Color(color.r, color.g, color.b);
+		return sf::Color(color.r, color.g, color.b, 0xff);
 	}
 
 	sf::Color calcColor(float x, float y, float angle) {
@@ -73,12 +78,12 @@ public:
 		float lightness = (hsv_value / 1.8f) * (2 - hsv_saturation);
 		float saturation = (hsv_value * hsv_saturation) / (1 - glm::abs(2 * lightness - 1));
 		Nan::ColorRGB color = Nan::hsl_to_rgb(hue, saturation, lightness);
-		return sf::Color(color.r, color.g, color.b);
+		return sf::Color(color.r, color.g, color.b, 0xff);
 	}
 
 	sf::Color calcColor(float angle) {
 		Nan::ColorRGB color = Nan::hsl_to_rgb(angle, 1.0f, 0.5f);
-		return sf::Color(color.r, color.g, color.b);
+		return sf::Color(color.r, color.g, color.b, 0xff);
 	}
 
 
@@ -105,6 +110,7 @@ public:
 		ctx.draw(rt, bounds.x, bounds.y);
 		ctx.draw_circle_empty(x+bounds.x+cube_margin, y+bounds.y+cube_margin, 5, 2);
 		ctx.draw_circle(x+bounds.x+cube_margin-5, y+bounds.y+cube_margin-5, 5, getCurrentColor());
+		ctx.draw_circle_empty(x0+bounds.x, y0+bounds.y, 5, 2);
 	}
 
   void on_key_down(Tools::KeyboardEvent& ev) {}
@@ -117,7 +123,7 @@ public:
 	void on_mouse_move(Tools::MouseEvent& ev) {	}
 
 	void drawing() {
-		float kh2 = height-cube_margin-cube_margin;
+		float kh2 = height-(cube_margin+pass)*2;
 		sf::Texture texture;
 		texture.create(width, height);
 		sf::Image img;
@@ -126,27 +132,67 @@ public:
 		for (int xx = 0; xx < kh2; xx++) {
 			for (int yy = 0; yy < kh2; yy++) {
 				sf::Color color = getColor(xx, yy);
-				img.setPixel(xx+cube_margin, yy+cube_margin, color);
+				img.setPixel(xx+cube_margin+pass, yy+cube_margin+pass, color);
 			}
 		}
 
 		texture.update(img);
 		rt.draw(sf::Sprite(texture));
 
-		float _height2 = height / 2.0f;
-
+		const float factor = 8.0f;
+		float _height2 = (height / 2.0f) - factor;
+		float flad = angle/360.0f;
+		sf::Color cll_ = getColor(kh2-1, 0.0f);
 		for (int i = 0; i < N; i++) {
 			float a = i * (2.0 * M_PI / N);
-			sf::Color color = calcColor(std::fmod((a/max_a) - (180.0f/360.0f), 1.0f));
-
+			float __a = std::fmod((a/max_a) - (180.0f/360.0f), 1.0f);
+			sf::Color color = calcColor(__a);
+			if (color == cll_) { rad = a; }
+			
 			float x1 = _height2*cos(a)+_height2;
 			float y1 = _height2*sin(a)+_height2;
 
 			float x2 = (_height2-circle_radius)*cos(a)+_height2;
 			float y2 = (_height2-circle_radius)*sin(a)+_height2;
+
+			x1 += factor; y1 += factor; x2 += factor; y2 += factor;
 			
 			Nan::Context::draw_line(rt, x1, y1, x2, y2, color);	
+
+			x1 = _height2*cos(a)+_height2;
+			y1 = _height2*sin(a)+_height2;
+
+			x2 = (_height2+2)*cos(a)+_height2;
+			y2 = (_height2+2)*sin(a)+_height2;
+
+			color.a = 0.67*255;
+			x1 += factor; y1 += factor; x2 += factor; y2 += factor;
+			
+			Nan::Context::draw_line(rt, x1, y1, x2, y2, color);	
+
+			x1 = (_height2-circle_radius)*cos(a)+_height2;
+			y1 = (_height2-circle_radius)*sin(a)+_height2;
+
+			x2 = (_height2-circle_radius-2)*cos(a)+_height2;
+			y2 = (_height2-circle_radius-2)*sin(a)+_height2;
+
+			color.a = 0.67*255;
+
+			x1 += factor; y1 += factor; x2 += factor; y2 += factor;
+			
+			Nan::Context::draw_line(rt, x1, y1, x2, y2, color);
 		}
+
+		sf::Color color = sf::Color::Black;
+
+		float __rd = ((angle-180)/360)*max_a;
+
+		float x1 = factor+2+_height2*cos(__rd)+_height2;
+		float y1 = factor+2+_height2*sin(__rd)+_height2;
+		float x2 = factor-2+(2+_height2-circle_radius)*cos(__rd)+_height2;
+		float y2 = factor-2+(2+_height2-circle_radius)*sin(__rd)+_height2;
+		x0 = (x1 + x2) / 2;
+		y0 = (y1 + y2) / 2;
 	}
 
 	void on_wheel_scroll(Tools::MouseEvent& ev) {
@@ -166,18 +212,19 @@ public:
 		float xx = bounds.x;
 		float yy = bounds.y;
 		float margin = cube_margin;
+		float lpp = pass * 0.05f;
 		
 		if (!in_cube && !is_inside_mm(
-			xx+margin-pass,
-			yy+margin-pass,
-			height+xx-margin+pass,
-			height+yy-margin+pass
+			xx+margin-lpp,
+			yy+margin-lpp,
+			height+xx-margin+lpp,
+			height+yy-margin+lpp
 		)) {
 			return true;
 		}
 
-		x = Nan::block(margin, ev.x-xx, height-margin)-margin;
-		y = Nan::block(margin, ev.y-yy, height-margin)-margin;
+		x = Nan::block(margin+pass, ev.x-xx, height-margin-pass)-margin;
+		y = Nan::block(margin+pass, ev.y-yy, height-margin-pass)-margin;
 
 		in_cube = true;
 		return false;
@@ -188,7 +235,7 @@ public:
 		float height = bounds.h;
 
 		sf::Color color = rt.getTexture().copyToImage().getPixel(ev.x-bounds.x, ev.y-bounds.y);
-		if (color.a != 0xFF) { return; }
+		if (color.a != 0xFF || color == sf::Color::Black) { return; }
 		Nan::ColorHSL hsl = Nan::rgb_to_hsl(color.r, color.g, color.b);
 
 		this->angle = hsl.h*360;
