@@ -12,6 +12,7 @@ FetchContent_Declare(SFML
     GIT_TAG 2.6.x)
 FetchContent_MakeAvailable(SFML) 
 
+
 function(add_module name)
     file(MAKE_DIRECTORY ${PREBUILT_MODULE_PATH})
     add_custom_target(${name}.pcm
@@ -30,13 +31,17 @@ add_compile_options(-fconcepts)
 add_compile_options(-fpermissive)
 add_executable(${PROJECT_NAME} WIN32 src/main.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC sfml-graphics)
-# target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_c++20)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_include_directories(${PROJECT_NAME} PUBLIC "./include" PUBLIC "./glm")
 
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION)
-set(CPACK_PACKAGE_VENDOR "ft_so2u")
+install(TARGETS ${PROJECT_NAME} ARCHIVE )
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 
 if(INSTALL_RUNTIME_PREFIX STREQUAL ".")
   set(install_prefix_for_set_property)

@@ -8,6 +8,8 @@
 #endif
 #include <NAN/Widget.hpp>
 #include <NAN/Widgets.hpp>
+// #include <NAN/interfaces/Reposable.hpp>
+#include <NAN/basic_widgets/Container.hpp>
 #include <NAN/Context.hpp>
 #include <vector>
 #include <memory>
@@ -15,11 +17,14 @@
 #define NAN_WINDOW_FRAME_RATE 144
 
 namespace Nan {
+class Container;
 
 class Window {
+public:
+ typedef struct {uint32_t width; uint32_t height; } Size;
 private:
 	sf::RenderWindow window;
-	// std::vector<void*> widgets;
+	std::vector<Nan::Container> repos_s;
 	Nan::Context ctx;
 	sf::Vector2f mouse_pos;
 	sf::Clock clock;
@@ -54,6 +59,14 @@ public:
 		window.setSize(sf::Vector2u(width, height));
 	}
 
+	void add_container(const Container& repos) {
+		repos_s.push_back(repos);
+	}
+
+	sf::Vector2u getBounds() {
+		return window.getSize();
+	}
+
 	sf::Vector2f mapPixelToCoords(const sf::Vector2i &point) const {
 		return window.mapPixelToCoords(point);
 	}
@@ -61,13 +74,24 @@ public:
 	template<typename... Types>
 	void event(Types&... widgets) {
 		sf::Event event;
+		sf::Vector2u bounds = getBounds();
 		while (window.pollEvent(event)) {
 			switch (event.type) {
 				case (sf::Event::Closed): {
 					on_close();
 				} break;
 				case (sf::Event::Resized): {
-					ctx.resize(window.getSize());
+					window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
+					// for (Container& rep: repos_s) {
+					// 	float rat_x = event.size.width - bounds.x;
+					// 	float rat_y = event.size.height - bounds.y;
+
+					// 	float rat_w = event.size.width / bounds.x;
+					// 	float rat_h = event.size.height / bounds.y;
+					// 	// rep.repos(rat_w, rat_h);
+					// 	rep.rescale(rat_w, rat_h);
+					// 	rep.update();
+					// }
 				} break;
 				case (sf::Event::MouseMoved): {
 					mouse_pos = window.mapPixelToCoords({ event.mouseMove.x, event.mouseMove.y });
@@ -82,11 +106,12 @@ public:
 	template<typename... Types>
 	void draw(Types&... widgets) {
 		window.clear(ctx.config().background().color);
+		ctx.set_cursor(sf::Cursor::Type::Arrow);
 		(widgets.draw(ctx), ...);
 		ctx.set("u_resolution", sf::Glsl::Vec2{ window.getSize() });
 		ctx.set("u_mouse", sf::Glsl::Vec2{ mouse_pos });
 		ctx.set("u_time", clock.getElapsedTime().asSeconds());
-		ctx.draw();
+		ctx.drawing();
 		window.display();
 	}
 	template<typename... Types>

@@ -46,6 +46,12 @@ namespace Tools {
 			return ( bounds.x < x && bounds.w+bounds.x > x &&
 							 bounds.y < y && bounds.h+bounds.y > y );
 		}
+
+		bool is_inside(Tools::Boundu* bounds) {
+			return ( bounds->x < x && bounds->w+bounds->x > x &&
+							 bounds->y < y && bounds->h+bounds->y > y );
+		}
+
 		bool is_inside(float _x, float _y, float _w, float _h) {
 			return ( _x < x && _w+_x > x &&
 							 _y < y && _h+_y > y );
@@ -53,6 +59,21 @@ namespace Tools {
 		bool is_inside_mm(float min_x, float min_y, float max_x, float max_y) {
 			return ( min_x < x && max_x > x &&
 							 min_y < y && max_y > y );
+		}
+		bool is_inside(float x, float y, float cx, float cy, float radius) {
+			return ( (x-cx)*(x-cx) + 
+							(y-cy)*(y-cy) <= radius*radius );
+		}
+		bool is_inside(float cx, float cy, float radius) {
+			float x = event_instances.x;
+			float y = event_instances.y;
+			
+			return ( (x-cx)*(x-cx) + 
+							(y-cy)*(y-cy) <= radius*radius );
+		}
+
+		MouseEvent& getMouse() {
+			return event_instances;
 		}
 
 

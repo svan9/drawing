@@ -11,6 +11,8 @@
 #include <NAN/tools/Keyboard.hpp>
 #include <iostream>
 #include <glm/glm.hpp>
+#define _USE_MATH_DEFINES 1
+#include <cmath>
 #include <algorithm>
 
 #include <Windows.h>
@@ -22,7 +24,6 @@ class HSLColorPicker:
 	public Tools::Mouse,
 	public Tools::Keyboard {
 private:
-	Tools::Boundu bounds;
 	sf::RenderTexture rt;
 
 	float width;
@@ -43,8 +44,8 @@ public:
 		config();
 	}
 
-	HSLColorPicker(Tools::Boundu bounds) {
-		this->bounds = bounds;
+	HSLColorPicker(Tools::Boundu __bounds) {
+		bounds(__bounds);
 		config();
 	}
 	
@@ -73,8 +74,8 @@ public:
 
 	sf::Color calcColor(float x, float y, float angle) {
 		float hue = angle/360;
-		float hsv_value = 1 - (y / bounds.h);
-		float hsv_saturation = x / bounds.w;
+		float hsv_value = 1 - (y / bounds().h);
+		float hsv_saturation = x / bounds().w;
 		float lightness = (hsv_value / 1.8f) * (2 - hsv_saturation);
 		float saturation = (hsv_value * hsv_saturation) / (1 - glm::abs(2 * lightness - 1));
 		Nan::ColorRGB color = Nan::hsl_to_rgb(hue, saturation, lightness);
@@ -90,15 +91,16 @@ public:
 	void config() {
 		sf::ContextSettings settings;
 		settings.antialiasingLevel = 8;
-		rt.create(bounds.w, bounds.h);
+		rt.create(bounds().w, bounds().h);
 		rt.setSmooth(true);
-		width = bounds.w;
-		height = bounds.h;
+		width = bounds().w;
+		height = bounds().h;
 		circle_radius = 0.09*height;
 		pass = 5;
 		cube_margin = 0.20*height+(circle_radius/3)+pass;
-		x = static_cast<float>(bounds.w);
-		x = static_cast<float>(bounds.y);
+		x = static_cast<float>(bounds().w);
+		x = static_cast<float>(bounds().y);
+		ratio_by_height();
 	}
 
 	void start() { }
@@ -107,10 +109,10 @@ public:
 	void draw(Nan::Context& ctx) {
 		rt.clear(sf::Color::Transparent);
 		drawing();
-		ctx.draw(rt, bounds.x, bounds.y);
-		ctx.draw_circle_empty(x+bounds.x+cube_margin, y+bounds.y+cube_margin, 5, 2);
-		ctx.draw_circle(x+bounds.x+cube_margin-5, y+bounds.y+cube_margin-5, 5, getCurrentColor());
-		ctx.draw_circle_empty(x0+bounds.x, y0+bounds.y, 5, 2);
+		ctx.draw(rt, bounds().x, bounds().y);
+		ctx.draw_circle_empty(x+bounds().x+cube_margin, y+bounds().y+cube_margin, 5, 2);
+		ctx.draw_circle(x+bounds().x+cube_margin-5, y+bounds().y+cube_margin-5, 5, getCurrentColor());
+		ctx.draw_circle_empty(x0+bounds().x, y0+bounds().y, 5, 2);
 	}
 
   void on_key_down(Tools::KeyboardEvent& ev) {}
@@ -199,18 +201,18 @@ public:
 	}
 
 	void on_mouse_down(Tools::MouseEvent& ev) {
-		if (!is_inside(bounds)) return;
+		if (!is_inside(&bounds())) return;
 		if (updateXY(ev) && !in_cube) updateAngle(ev);
 	}
 
 	void on_mouse_hold(Tools::MouseEvent& ev) {
-		if (!is_inside(bounds)) return;
+		if (!is_inside(&bounds())) return;
 		if (updateXY(ev) && !in_cube) updateAngle(ev);
 	}
 
 	bool updateXY(Tools::MouseEvent& ev) {
-		float xx = bounds.x;
-		float yy = bounds.y;
+		float xx = bounds().x;
+		float yy = bounds().y;
 		float margin = cube_margin;
 		float lpp = pass * 0.05f;
 		
@@ -231,10 +233,10 @@ public:
 	}
 	
 	void updateAngle(Tools::MouseEvent& ev) {
-		float width = bounds.w;
-		float height = bounds.h;
+		float width = bounds().w;
+		float height = bounds().h;
 
-		sf::Color color = rt.getTexture().copyToImage().getPixel(ev.x-bounds.x, ev.y-bounds.y);
+		sf::Color color = rt.getTexture().copyToImage().getPixel(ev.x-bounds().x, ev.y-bounds().y);
 		if (color.a != 0xFF || color == sf::Color::Black) { return; }
 		Nan::ColorHSL hsl = Nan::rgb_to_hsl(color.r, color.g, color.b);
 

@@ -4,6 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <NAN/Window.hpp>
 #include <NAN/ContextConfig.hpp>
+#include <NAN/tools/Bounds.hpp>
 #include <glm/glm.hpp>
 #include <functional>
 
@@ -18,6 +19,7 @@ private:
 	sf::RenderWindow* base_window;
 	sf::Shader shader;
 	sf::RectangleShape main_frame;
+	sf::Cursor cursor;
 	ContextConfig style_config;
 	bool is_cursor = true;
 public:
@@ -35,9 +37,12 @@ public:
 		is_cursor = true;
 	}
 	void update_cursor() {
+		base_window->setMouseCursor(cursor);
 		base_window->setMouseCursorVisible(is_cursor);
 	}
-
+	void set_cursor(sf::Cursor::Type _cursor) {
+		this->cursor.loadFromSystem(_cursor);
+	}
 	void resize(sf::Vector2u size) {
 		main_frame.setSize(sf::Vector2f(size.x, size.y));
 	}
@@ -62,6 +67,7 @@ public:
 	void load_shader(const char* path) {
 	  load_shader(path, Nan::Context::ShaderKind::Fragment);
 	}
+
 	void load_shader(const char* path, Nan::Context::ShaderKind sh_kind) {
 		if (sh_kind == ShaderKind::Fragment) {
 			if (!shader.loadFromFile(path, sf::Shader::Fragment)) {
@@ -75,13 +81,27 @@ public:
 		}
 	}
 
+	void print_text(std::string& text, Tools::Boundu rect) {
+		sf::Text __text;
+		__text.setString(text);
+		float __char_size = text.size()/rect.w;
+		__text.setCharacterSize(__char_size);
+		sf::Vector2f pos({(float)rect.x, (float)rect.y});
+		__text.setPosition(pos);
+		base_window->draw(__text);
+	}
+
+	void draw(const sf::Drawable &drawable, const sf::RenderStates &states = sf::RenderStates::Default) {
+		base_window->draw(drawable, states);
+	}
+
 	template<typename T>
 	void set(const char* name, T value) {
 		// shader.setParameter(name, value);
 		shader.setUniform(name, value);
 	}
 
-	void draw() {
+	void drawing() {
 		update_cursor();
 		// set("texture", sf::Shader::CurrentTexture);
 		// base_window->draw(main_frame, &shader);
@@ -133,6 +153,42 @@ public:
 		rt.draw(line, 2, sf::Lines);
 	}
 
+	void draw_line(float x1, float y1, float x2, float y2, sf::Color color = sf::Color::Black) {
+		sf::Vertex line[] =
+		{
+			sf::Vertex(sf::Vector2f(x1, y1), color),
+			sf::Vertex(sf::Vector2f(x2, y2), color)
+		};
+		base_window->draw(line, 2, sf::Lines);
+	}
+	void draw_line_x(float x, float y, float width, float weight, sf::Color color = sf::Color::Black) {
+		sf::RectangleShape cnv;
+		cnv.setPosition(sf::Vector2f(x, y));
+		cnv.setSize(sf::Vector2f(width, 1));
+		cnv.setFillColor(color);
+		cnv.setOutlineColor(color);
+		cnv.setOutlineThickness(weight);
+		base_window->draw(cnv);
+	}
+	void draw_rect(float x, float y, float width, float height, float weight=1.0f, sf::Color color = sf::Color::Black) {
+		sf::RectangleShape cnv;
+		cnv.setPosition(sf::Vector2f(x, y));
+		cnv.setSize(sf::Vector2f(width, height));
+		cnv.setFillColor(color);
+		cnv.setOutlineColor(color);
+		cnv.setOutlineThickness(weight);
+		base_window->draw(cnv);
+	}
+	static void draw_rect(sf::RenderTexture& rt, float x, float y, float width, float height, float weight=1.0f, sf::Color color = sf::Color::Black) {
+		sf::RectangleShape cnv;
+		cnv.setPosition(sf::Vector2f(x, y));
+		cnv.setSize(sf::Vector2f(width, height));
+		cnv.setFillColor(color);
+		cnv.setOutlineColor(color);
+		cnv.setOutlineThickness(weight);
+		rt.draw(cnv);
+	}
+
 	void draw(sf::RenderTexture& rt, uint32_t x, uint32_t y) {
 		rt.display();
 		const auto& texture = rt.getTexture();
@@ -145,14 +201,14 @@ public:
 		base_window->draw(sprite);
 	}
 
-	void draw_rect(size_t x, size_t y, size_t w, size_t h) {
-		sf::ConvexShape cnv;
-		cnv.setPoint(0, sf::Vector2f(x, y));
-		cnv.setPoint(1, sf::Vector2f(x+w, y));
-		cnv.setPoint(2, sf::Vector2f(x+w, y+h));
-		cnv.setPoint(3, sf::Vector2f(x, y+h));
-		base_window->draw(cnv);
-	}
+	// void draw_rect(size_t x, size_t y, size_t w, size_t h) {
+	// 	sf::ConvexShape cnv;
+	// 	cnv.setPoint(0, sf::Vector2f(x, y));
+	// 	cnv.setPoint(1, sf::Vector2f(x+w, y));
+	// 	cnv.setPoint(2, sf::Vector2f(x+w, y+h));
+	// 	cnv.setPoint(3, sf::Vector2f(x, y+h));
+	// 	base_window->draw(cnv);
+	// }
 
 	static void draw_rect_line(sf::RenderTexture& rt,
 		size_t x, size_t y, 
@@ -253,41 +309,41 @@ public:
 		return 0;
 	}
 
-	static void normal_r4(
-		size_t& x, size_t& y, 
-		size_t& dx, size_t& dy,
-		size_t& x_2, size_t& y_2, 
-		size_t& dx_2, size_t& dy_2
-	) {
-		auto ffx = {x, dx, x_2, dx_2};
-		auto ffy = {y, dy, y_2, dy_2};
-		std::vector<sf::Vector2u> ff = {{x, y}, {dx, dy}, {x_2, y_2}, {dx_2, dy_2}};
+	// static void normal_r4(
+	// 	size_t& x, size_t& y, 
+	// 	size_t& dx, size_t& dy,
+	// 	size_t& x_2, size_t& y_2, 
+	// 	size_t& dx_2, size_t& dy_2
+	// ) {
+	// 	auto ffx = {x, dx, x_2, dx_2};
+	// 	auto ffy = {y, dy, y_2, dy_2};
+	// 	std::vector<sf::Vector2u> ff = {{x, y}, {dx, dy}, {x_2, y_2}, {dx_2, dy_2}};
 
-		x = std::min(ffx);
-		y = std::min(ffy);
-		dx_2 = std::max(ffx);
-		dy_2 = std::max(ffy);
+	// 	x = std::min(ffx);
+	// 	y = std::min(ffy);
+	// 	dx_2 = std::max(ffx);
+	// 	dy_2 = std::max(ffy);
 
-		std::function<bool(sf::Vector2u&)> fndx;
-		fndx = [x, dy_2](sf::Vector2u& d) -> bool {
-			return d.x > x && d.y < dy_2;
-		};
+	// 	std::function<bool(sf::Vector2u&)> fndx;
+	// 	fndx = [x, dy_2](sf::Vector2u& d) -> bool {
+	// 		return d.x > x && d.y < dy_2;
+	// 	};
 
-		size_t _di = find_if_index(fndx, ff);
-		dx = *(ffx.begin()+_di);
-		dy = *(ffy.begin()+_di);
+	// 	size_t _di = find_if_index(fndx, ff);
+	// 	dx = *(ffx.begin()+_di);
+	// 	dy = *(ffy.begin()+_di);
 
-		std::function<bool(sf::Vector2u&)> fnx_2;
-		fnx_2 = [y, dx_2](sf::Vector2u& d) -> bool {
-			return d.x > dx_2 && d.y < y;
-		};
+	// 	std::function<bool(sf::Vector2u&)> fnx_2;
+	// 	fnx_2 = [y, dx_2](sf::Vector2u& d) -> bool {
+	// 		return d.x > dx_2 && d.y < y;
+	// 	};
 
-		_di = find_if_index(fnx_2, ff);
+	// 	_di = find_if_index(fnx_2, ff);
 		
-		x_2 = *(ffx.begin()+_di);
-		y_2 = *(ffy.begin()+_di);
+	// 	x_2 = *(ffx.begin()+_di);
+	// 	y_2 = *(ffy.begin()+_di);
 
-	}
+	// }
 	
 	static void draw_rect_line(sf::RenderTexture& rt,
 		size_t x, size_t y, 

@@ -12,12 +12,11 @@ namespace Nan {
 
 class Frame: public Widget {
 private:
-	Tools::Boundu bounds;
 public:
 	Frame() { }
 
-	Frame(Tools::Boundu bounds) {
-		this->bounds = bounds;
+	Frame(Tools::Boundu __bounds) {
+		bounds(__bounds);
 	}
 
 	~Frame() = default;

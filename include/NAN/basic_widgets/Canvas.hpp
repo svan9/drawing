@@ -9,6 +9,7 @@
 #include <NAN/tools/Bounds.hpp>
 #include <NAN/tools/Mouse.hpp>
 #include <NAN/basic_widgets/HSLColorPicker.hpp>
+#include <NAN/basic_widgets/Slider.hpp>
 #include <NAN/tools/Keyboard.hpp>
 #include <iostream>
 #include <glm/glm.hpp>
@@ -22,22 +23,27 @@ class Canvas:
 	public Tools::Mouse,
 	public Tools::Keyboard {
 private:
-	Tools::Boundu bounds;
+	// Tools::Boundu canvas_size;
 	sf::RenderTexture rt;
+	sf::RenderTexture buffer;
 	sf::Clock clock;
 	float radius = 5.0f;
 	sf::Color color = sf::Color::Black;
+	sf::Color bgc = sf::Color(0x22223bff);
 	sf::Color alt_color = sf::Color::White;
 	sf::Vector2f circle;
 	glm::vec2 last;
 	Nan::HSLColorPicker* picker;
+	Nan::Slider* opacity_slider = nullptr;
+	Nan::Slider* size_slider = nullptr;
+	const float max_size = 100.0f;
 public:
 	Canvas() {
 		config();
 	}
 
-	Canvas(Tools::Boundu bounds) {
-		this->bounds = bounds;
+	Canvas(Tools::Boundu __bounds) {
+		bounds(__bounds);
 		config();
 	}
 
@@ -48,7 +54,7 @@ public:
 	void setWeight(float radius) {
 		this->radius = radius;
 	}
- 
+
 	void config() {
 		sf::ContextSettings settings;
 		settings.antialiasingLevel = 8;
@@ -56,14 +62,32 @@ public:
 		circle.y = 0;
 		last.x = 0;
 		last.y = 0;
-		rt.create(bounds.w, bounds.h);
-		rt.clear(alt_color);
+		rt.create(bounds().w, bounds().h);
 		rt.setSmooth(true);
+		rt.clear(bgc);
+		buffer.create(bounds().w, bounds().h);
+		buffer.setSmooth(true);
 		picker = nullptr;
+		ratio_by_height();
+		clear();
 	}
 
 	void add_picker(Nan::HSLColorPicker* picker) {
 		this->picker = picker;
+	}
+
+	void set_sliders(Nan::Slider* opacity, Nan::Slider* size) {
+		opacity_slider = opacity;
+		size_slider = size;
+	}
+
+	void add_slider_opacity(Nan::Slider* slider) {
+		opacity_slider = slider;
+	}
+
+	void add_slider_size(Nan::Slider* slider) {
+		size_slider = slider;
+		size_slider->set(radius/bounds().w);
 	}
 
 	void clear() {
@@ -71,16 +95,22 @@ public:
 	}
 
 	void start() { }
-	
+
 	void update() {
 		if (picker != nullptr) {
 			color = picker->getCurrentColor();
 		}
+		if (opacity_slider != nullptr) {
+			color.a = opacity_slider->get()*255;
+		}
+		if (size_slider != nullptr) {
+			radius = size_slider->get()*max_size;
+		}
 	}
 
 	void draw(Nan::Context& ctx) {
-		ctx.draw(rt, bounds.x, bounds.y);
-		if (is_inside(bounds)) {
+		ctx.draw(rt, bounds().x, bounds().y);
+		if (is_inside(&bounds())) {
 			ctx.draw_circle_empty(circle.x, circle.y, radius, 2);
 			ctx.hide_cursor();
 		} else {
@@ -91,11 +121,11 @@ public:
   void on_key_down(Tools::KeyboardEvent& ev) { }
 
   void on_key_up(Tools::KeyboardEvent& ev) {
-		if (is_inside(bounds) && ev.kw.control && ev.kw.code == sf::Keyboard::Key::S) {
+		if (is_inside(&bounds()) && ev.kw.control && ev.kw.code == sf::Keyboard::Key::S) {
 			save();
 		}
 	}
-	
+
 	void on_mouse_down(Tools::MouseEvent& ev) { }
 
 	void on_mouse_up(Tools::MouseEvent& ev) {
@@ -141,7 +171,7 @@ public:
 		crc.setFillColor(color);
 		crc.setPosition(current.x, current.y);
 		crc.setRadius(radius-1);
-		crc.setOutlineColor(sf::Color(color.r, color.g, color.b, 0xAA));
+		crc.setOutlineColor(color);
 		crc.setOutlineThickness(1);
 		rt.draw(crc);
 		float dist = glm::sqrt(
@@ -158,6 +188,21 @@ public:
 			crc.setPosition({x, y});
 			rt.draw(crc);
 		}
+
+		// sf::Image img = rt.getTexture().copyToImage();
+		// sf::Texture texture;
+		// texture.create(canvas_size.w, bounds().h);
+		// for (int x = 0; x < bounds().w; x++) {
+		// 	for (int y = 0; y < bounds().h; y++) {
+		// 		sf::Color color = img.getPixel(x, y);
+		// 		if (color.a != 0.0f) {
+		// 			img.setPixel(x, y, color);
+		// 		}
+		// 	}
+		// }
+		// texture.update(img);
+		// rt.clear(sf::Color::Transparent);
+		// rt.draw(sf::Sprite(texture));
 		last = current;
 	}
 
@@ -178,7 +223,7 @@ public:
 			last = current;
 			return;
 		}
-		
+
 		float steps = dist/radius*2;
 
 		for (int i = 0; i <= steps; ++i) {
@@ -199,8 +244,8 @@ public:
 	}
 
 	void on_mouse_hold(Tools::MouseEvent& ev) {
-		if (!is_inside(bounds)) return;
-		glm::vec2 current(ev.x-bounds.x, ev.y-bounds.y);
+		if (!is_inside(&bounds())) return;
+		glm::vec2 current(ev.x-bounds().x, ev.y-bounds().y);
 		current -= radius;
 
 		if (ev.button == sf::Mouse::Button::Left) {
@@ -211,8 +256,6 @@ public:
 		}
 	}
 
-
-	
 	void event(sf::Event& ev, sf::RenderWindow& ptw) {
 		provide_key(ev, ptw);
 		provide_mouse(ev, ptw);

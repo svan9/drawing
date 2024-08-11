@@ -1,11 +1,13 @@
 #ifndef NAN_UTILS_HPP
 #define NAN_UTILS_HPP
 
-#include <algorithm>
 #include <glm/glm.hpp>
-#include <Windows.h>
-
+#include <algorithm>
+#include <concepts>
+	
 namespace Nan {
+	template <typename T>
+	concept arithmetic = std::is_arithmetic_v<T>;
 
 	struct ColorRGB {
 		int r, g, b;
@@ -28,11 +30,16 @@ namespace Nan {
 		return val < min ? min: val;
 	}
 
-	template<typename T>
-	T block(T min, T val, T max) {
+	template<arithmetic T, arithmetic U, arithmetic K> 
+	T block(T min, U val, K max) {
 		if (val < min) {return min;}
 		if (val > max) {return max;}
 		return val;
+	}
+
+	template<arithmetic T, arithmetic U> 
+	T min(T x, U y) {
+		return x < y ? x: y;
 	}
 
 	template<typename T>
@@ -79,20 +86,6 @@ namespace Nan {
 		if (vmax == b) h = (r - g) / d + 4;
 		h /= 6;
 		return {h, s, l};
-	}
-
-
-	void HideConsole()
-	{
-			::ShowWindow(::GetConsoleWindow(), SW_HIDE);
-	}
-	void ShowConsole()
-	{
-			::ShowWindow(::GetConsoleWindow(), SW_SHOW);
-	}
-	bool IsConsoleVisible()
-	{
-			return ::IsWindowVisible(::GetConsoleWindow()) != FALSE;
 	}
 }
 #endif
